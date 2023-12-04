@@ -1,25 +1,37 @@
-import 'package:at_at_mobile/navigation_bar.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ScaffoldWithNavbar extends StatelessWidget {
   const ScaffoldWithNavbar({
-    required this.child,
+    required this.navigationShell,
     super.key
   });
 
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Test'),
+        title: Text(navigationShell.route.branches[navigationShell.currentIndex].defaultRoute?.name ?? ""),
       ),
-      body: Center(
-        child: child
+      body: navigationShell,
+      bottomNavigationBar: CurvedNavigationBar(
+        color: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        animationDuration: const Duration(milliseconds: 450),
+        items: const [
+          Icon(Icons.home),
+          Icon(Icons.bluetooth),
+          Icon(Icons.settings),
+        ],
+        onTap: (int index) {
+          print(navigationShell.route.branches[0].defaultRoute?.path);
+          navigationShell.goBranch(index);
+        },
       ),
-      bottomNavigationBar: const MyNavigationBar(),
     );
   }
 }

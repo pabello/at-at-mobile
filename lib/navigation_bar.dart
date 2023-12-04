@@ -16,19 +16,20 @@ class _MyNavigationBarState extends State<MyNavigationBar> {
       color: Theme.of(context).colorScheme.inversePrimary,
       backgroundColor: Theme.of(context).colorScheme.background,
       animationDuration: const Duration(milliseconds: 450),
-      onTap: (index) {
-        switch(index) {
-          case 0:
-            context.go('/');
-            break;
-          case 1:
-            context.go('/bluetooth');
-            break;
-          case 2:
-            context.go('/settings');
-            break;
-        }
-      },
+      onTap: (int index) => GoRouter.of(context).go('/'),
+      // onTap: (index) {
+      //   switch(index) {
+      //     case 0:
+      //       context.go('/');
+      //       break;
+      //     case 1:
+      //       context.go('/bluetooth');
+      //       break;
+      //     case 2:
+      //       context.go('/settings');
+      //       break;
+      //   }
+      // },
       items: const [
         Icon(Icons.home),
         Icon(Icons.bluetooth),

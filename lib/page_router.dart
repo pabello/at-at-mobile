@@ -2,27 +2,47 @@ import 'package:at_at_mobile/pages/bluetooth_page.dart';
 import 'package:at_at_mobile/pages/home_page.dart';
 import 'package:at_at_mobile/pages/settings_page.dart';
 import 'package:at_at_mobile/scaffold_with_navbar.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+final GlobalKey<NavigatorState> _rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'root');
+
 GoRouter router = GoRouter(
-  // initialLocation: '/',
-  routes: [
-    ShellRoute(
-      builder: (context, state, child) {
-        return ScaffoldWithNavbar(child: child);
+  navigatorKey: _rootNavigatorKey,
+  routes: <RouteBase>[
+    StatefulShellRoute.indexedStack(
+      builder: (BuildContext context, GoRouterState state,
+            StatefulNavigationShell navigationShell) {
+        return ScaffoldWithNavbar(navigationShell: navigationShell);
       },
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const MyHomePage(title: 'AT-AT Controller App'),
+      branches: <StatefulShellBranch>[
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: 'AT-AT controller',
+              path: '/',
+              builder: (context, state) => const MyHomePage(title: 'AT-AT Controller App'),
+            ),
+          ]
         ),
-        GoRoute(
-          path: '/bluetooth',
-          builder: (context, state) => const BluetoothPage(),
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              name: 'Bluetooth',
+              path: '/bluetooth',
+              builder: (context, state) => Scaffold(), //const BluetoothPage(),
+            ),
+          ]
         ),
-        GoRoute(
-          path: '/settings',
-          builder: (context, state) => const SettingsPage(),
+        StatefulShellBranch(
+          routes: <RouteBase>[
+            GoRoute(
+              name: 'Settings',
+              path: '/settings',
+              builder: (context, state) => const SettingsPage(),
+            ),
+          ]
         ),
       ],
     )
