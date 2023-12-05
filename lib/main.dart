@@ -1,18 +1,18 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:developer';
-import 'dart:typed_data';
-// import 'dart:typed_data';
-
-import 'package:at_at_mobile/constants.dart';
+import 'package:at_at_mobile/bluetooth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:provider/provider.dart';
 
-// TODO: Brobot: próba połączenia, jak bluetooth już jest połączony wywołuje exception
-
-void main() => runApp(MyApp());
+void main() => runApp(
+    ChangeNotifierProvider(
+      create: (context) => MyBluetoothState(),
+      child: const MyApp(),
+    )
+  );
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -34,159 +34,28 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
-  List<_DeviceWithAvailability> devices =
-      List<_DeviceWithAvailability>.empty(growable: true);
-
-  StreamSubscription<BluetoothDiscoveryResult>? _discoveryStreamSubscription;
-  int _discoverableTimeoutSecondsLeft = 0;
-
-  bool? _isDiscovering;
-  bool? isConnecting;
-  bool? isDisconnecting;
-  bool? isLedOn;
-
-  Timer? _discoverableTimeoutTimer;
-  BluetoothConnection? bluetoothConnection;
-  bool get isConnected => (bluetoothConnection?.isConnected ?? false);
+  BluetoothConnection? get bluetoothConnection => Provider.of<MyBluetoothState>(context, listen:false).bluetoothConnection;
+  bool get isConnected => bluetoothConnection?.isConnected ?? false;
 
   @override
   void initState() {
+    Provider.of<MyBluetoothState>(context, listen: false).refreshBluetoothState();
     super.initState();
-
-    _isDiscovering = false;
-    isConnecting = false;
-    isDisconnecting = false;
-    isLedOn = false;
-
-    // Get current state
-    FlutterBluetoothSerial.instance.state.then((state) {
-      setState(() {
-        _bluetoothState = state;
-      });
-    });
-
-    Future.doWhile(() async {
-      // Wait if adapter not enabled
-      if ((await FlutterBluetoothSerial.instance.isEnabled) ?? false) {
-        return false;
-      }
-      await Future.delayed(Duration(milliseconds: 0xDD));
-      return true;
-    }).then((_) {});
-
-    // Listen for futher state changes
-    FlutterBluetoothSerial.instance
-        .onStateChanged()
-        .listen((BluetoothState state) {
-      setState(() {
-        _bluetoothState = state;
-
-        // Discoverable mode is disabled when Bluetooth gets disabled
-        _discoverableTimeoutTimer = null;
-        _discoverableTimeoutSecondsLeft = 0;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
-    _discoveryStreamSubscription?.cancel();
-    _discoverableTimeoutTimer?.cancel();
-    super.dispose();
-  }
-
-  void listPairedDevices() {
-    FlutterBluetoothSerial.instance
-      .getBondedDevices()
-      .then((List<BluetoothDevice> bondedDevices) {
-        setState(() {
-          devices = bondedDevices
-            .map((device) => _DeviceWithAvailability(device, _DeviceAvailability.yes))
-            .toList();
-      });
-    });
-  }
-
-  void _startDiscovery() {
-    setState(() {
-      _isDiscovering = true;
-    });
-
-    _discoveryStreamSubscription =
-        FlutterBluetoothSerial.instance.startDiscovery().listen((r) {
-      setState(() {
-        Iterator i = devices.iterator;
-        while (i.moveNext()) {
-          var iterDevice = i.current;
-          if (iterDevice.device == r.device) {
-            iterDevice.availability = _DeviceAvailability.yes;
-            iterDevice.rssi = r.rssi;
-          }
-        }
-      });
-    });
-
-    _discoveryStreamSubscription?.onDone(() {
-      setState(() {
-        _isDiscovering = false;
-      });
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    List<ListTile> deviceList = devices
-        .map((listDevice) => ListTile(
-              title: Text(listDevice.device.name ?? 'Unnamed device'),
-              subtitle: Text(listDevice.device.address),
-              enabled: listDevice.availability == _DeviceAvailability.yes,
-              onTap: () {
-                log("Trying to connect to device ${listDevice.device.name} at address ${listDevice.device.address}");
-                BluetoothConnection.toAddress(listDevice.device.address).then((connection) {
-                  log("Connected successfully!");
-                  bluetoothConnection = connection;
-                  setState(() {
-                    isConnecting = false;
-                    isDisconnecting = false;
-                  });
-                }).onError((error, stackTrace) {
-                  log("Connection failed...");
-                  print(stackTrace);
-                });
-              },
-            ))
-        .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: <Widget>[
-          if (_isDiscovering != null && _isDiscovering!)
-            FittedBox(
-              child: Container(
-                margin: const EdgeInsets.all(16.0),
-                child: const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white,
-                  ),
-                ),
-              ),
-            )
-          else IconButton(
-            icon: const Icon(Icons.replay),
-            onPressed: _startDiscovery,
-          )
-        ],
       ),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.bluetooth),
+          const Icon(Icons.bluetooth),  // TODO: zrobić super indicator z wykorzystaniem pluginu avatar_glow
           ListTile(
             title: const Text("Enable Bluetooth"),
-            subtitle: Text(_bluetoothState.toString()),
+            subtitle: Text(Provider.of<MyBluetoothState>(context).bluetoothState.stringValue),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -197,76 +66,57 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: const Icon(Icons.settings)
                 ),
                 Switch.adaptive(
-                  value: _bluetoothState.isEnabled,
-                  onChanged: (bool value) {
-                    future() async {
-                      if (value) {
-                        await FlutterBluetoothSerial.instance.requestEnable();
-                      } else {
-                        await FlutterBluetoothSerial.instance.requestDisable();
-                      }
-                    }
-                    future().then((_) {
-                      setState(() {});
-                    });
-                  },
+                  value: Provider.of<MyBluetoothState>(context).isBluetoothOn,
+                  onChanged: (bool value) =>
+                      Provider.of<MyBluetoothState>(context, listen: false).requestBluetoothState(value),
                 )
               ],
             ),
           ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "To connect a device, pair with it in the blueooth settings",
+              textAlign: TextAlign.center,
+              textScaleFactor: 0.85,
+              style: TextStyle(color: Colors.grey),),
+          ),
           OutlinedButton.icon(
             onPressed: () {
-              // _startDiscovery();
-              listPairedDevices();
+              Provider.of<MyBluetoothState>(context, listen: false).updatePairedDevices();
             },
             icon: const Icon(Icons.search),
             label: const Text("Show paired devices")
           ),
           ListView(
             shrinkWrap: true,
-            children: deviceList
-          ),
-          ListTile(
-            title: ElevatedButton(
-              child: const Text('Disconnect bluetooth'),
-              onPressed: null,
-              // onPressed: isConnected ? () async {
-              //   bluetoothConnection?.finish()
-              //     .then((_) {
-              //       bluetoothConnection?.dispose();
-              //       setState(() {});
-              //       log("Bluetooth disconnected.");
-              //     });
-              // } : null
+            children: List.from(
+              Provider.of<MyBluetoothState>(context).pairedDevices
+              .map((device) => PairedDeviceTile(device: device))
             ),
           ),
           ListTile(
             title: ElevatedButton(
-              // onPressed: null,
-              onPressed: () => log(actionMessages[RobotAction.goForward]!),
-              child: const Text('Test enum'),
+              onPressed: isConnected ?
+                () => Provider.of<MyBluetoothState>(context, listen: false).disconnectBluetoothDevice()
+                : null,
+              child: const Text('Disconnect bluetooth'),
             ),
           ),
           FilledButton.icon(
-            onPressed: isConnected ? () async {
-              if (isLedOn != null && isLedOn!) {
-                log("Sending signal OFF");
-                bluetoothConnection!.output.add(Uint8List.fromList(utf8.encode("LED OFF;")));
-                await bluetoothConnection!.output.allSent.then((value) => log("Message sent. Receilved callback: $value")).then((_) => setState(() {
-                  isLedOn = false;
-                },));
+            onPressed: Provider.of<MyBluetoothState>(context).isConnected ? () async {
+              if (Provider.of<MyBluetoothState>(context, listen: false).isLedOn) {
+                Provider.of<MyBluetoothState>(context, listen: false).sendLedSignal();
+                // await bluetoothConnection!.output.allSent.then((value) => log("Message sent. Receilved callback: $value"))
               } else {
-                log("Sending signal ON");
-                bluetoothConnection!.output.add(Uint8List.fromList(utf8.encode("LED ON;")));
-                await bluetoothConnection!.output.allSent.then((value) => log("Message sent. Receilved callback: $value")).then((_) => setState(() {
-                  isLedOn = true;
-                },));
+                Provider.of<MyBluetoothState>(context, listen: false).sendLedSignal();
+                // await bluetoothConnection!.output.allSent.then((value) => log("Message sent. Receilved callback: $value"))
               }
             } : null,
-            icon: isLedOn != null ? 
-                (isLedOn! ? const Icon(Icons.lightbulb) : const Icon(Icons.lightbulb_outline))
-              : const Icon(Icons.question_mark),
-            label: const Text("Power ON/OFF the LED")
+            icon: Provider.of<MyBluetoothState>(context, listen: true).isLedOn ? 
+              const Icon(Icons.lightbulb) : const Icon(Icons.lightbulb_outline),
+            label: Text("Power ${Provider.of<MyBluetoothState>(context, listen: true).isLedOn ? 
+              "OFF" : "ON"} the LED")
           )
         ],
       ),
@@ -274,17 +124,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-enum _DeviceAvailability {
-  yes,
-  maybe,
-}
+class PairedDeviceTile extends StatelessWidget {
+  const PairedDeviceTile({super.key, required this.device});
 
-class _DeviceWithAvailability {
-  BluetoothDevice device;
-  _DeviceAvailability availability;
-  int? rssi;
+  final BluetoothDevice device;
 
-  _DeviceWithAvailability(this.device, this.availability, [this.rssi]);
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(device.name ?? 'Unnamed device'),
+      subtitle: Text(device.address, textScaleFactor: 0.9,),
+      onTap: () => Provider.of<MyBluetoothState>(context, listen: false).connectToDevice(context, device),
+    );
+  }
 }
 
 //   @override
