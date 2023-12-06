@@ -129,10 +129,16 @@ class MyBluetoothState extends ChangeNotifier {
 
 
   void sendMovementSignal(ActionSignal signal) {
-    String actionSignal = actionSignals[signal] ?? 'Error signal';
+    String actionSignal = actionSignals[signal] ?? 'APPLICATION ERROR SIGNAL;';
+    print(actionSignal);
     if (bluetoothConnection != null) {
       bluetoothConnection!.output.add(Uint8List.fromList(utf8.encode(actionSignal)));
+      bluetoothConnection!.output.allSent.then((value) {
+        print("data has been sent");
+        log(value.toString());
+      });
       robotAction = signal;
+      print(robotAction.toString());
       notifyListeners();
     }
   }

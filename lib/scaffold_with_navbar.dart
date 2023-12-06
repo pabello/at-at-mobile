@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +21,7 @@ class ScaffoldWithNavbar extends StatelessWidget {
       ),
       body: navigationShell,
       bottomNavigationBar: CurvedNavigationBar(
+        height: 55,
         color: Theme.of(context).colorScheme.inversePrimary,
         backgroundColor: Theme.of(context).colorScheme.background,
         animationDuration: const Duration(milliseconds: 450),
@@ -28,7 +31,7 @@ class ScaffoldWithNavbar extends StatelessWidget {
           Icon(Icons.settings),
         ],
         onTap: (int index) {
-          print(navigationShell.route.branches[0].defaultRoute?.path);
+          log("Routing to: ${navigationShell.route.branches[index].defaultRoute?.path}");
           navigationShell.goBranch(index);
         },
       ),

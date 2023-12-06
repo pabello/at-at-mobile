@@ -29,9 +29,9 @@ GoRouter router = GoRouter(
         StatefulShellBranch(
           routes: <RouteBase>[
             GoRoute(
-              name: 'Bluetooth',
+              name: 'Bluetooth settings',
               path: '/bluetooth',
-              builder: (context, state) => Scaffold(), //const BluetoothPage(),
+              builder: (context, state) => const BluetoothPage(title: 'Bluetooth settings'),
             ),
           ]
         ),

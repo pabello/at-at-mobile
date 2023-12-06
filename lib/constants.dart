@@ -1,6 +1,4 @@
-const double directionIconSize = 112;  // size of the "go direction" icon
-const double turnsOffset = 96;  // "size of the smaller SizedBox to offset the "turn left/right" buttons
-//  TODO: set both to percentage values of the screen width
+const double bluetoothButtonsPadding = 72;
 
 enum ActionSignal {
   ledOn,
@@ -9,6 +7,7 @@ enum ActionSignal {
   goBackward,
   turnRight,
   turnLeft,
+  nonExistent,
 }
 
 const Map<ActionSignal, String> actionSignals = {
@@ -16,6 +15,7 @@ const Map<ActionSignal, String> actionSignals = {
   ActionSignal.ledOff: "LED OFF;",
   ActionSignal.goForward: "GO FORWARD;",
   ActionSignal.goBackward: "GO BACKWARD;",
-  ActionSignal.turnLeft: "TURN LEFT",
+  ActionSignal.turnLeft: "TURN LEFT;",
   ActionSignal.turnRight: "TURN RIGHT;",
+  ActionSignal.nonExistent: "SIGNAL DOES NOT EXIST;"
 };

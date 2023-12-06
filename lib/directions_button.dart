@@ -1,13 +1,19 @@
+import "dart:developer";
+
+import "package:at_at_mobile/constants.dart";
+import "package:at_at_mobile/provider/bluetooth_state.dart";
 import "package:flutter/material.dart";
-import "constants.dart";
+import "package:provider/provider.dart";
 
 class RobotActionButton extends StatefulWidget {
   const RobotActionButton({
     super.key, 
+    required this.iconSize,
     required this.isActive,
     required this.buttonType,
     required this.onPressCallback});
   
+  final double iconSize;
   final bool isActive;
   final ButtonType buttonType;
   final Function(ButtonType) onPressCallback;
@@ -41,36 +47,64 @@ class _RobotActionButtonState extends State<RobotActionButton> {
           widget.buttonType.iconAsset
         ),
       ),
-      iconSize: directionIconSize,
-      tooltip: "Move forward",
+      iconSize: widget.iconSize,
+      tooltip: widget.buttonType.tooltip,
       );
   }
 }
 
 
 enum ButtonType {
-  up(scaleX: 1, scaleY: -1, tooltip: "Move forward", iconAsset:AssetImage('assets/images/down-arrow.png')),
-  down(scaleX: 1, scaleY: 1, tooltip: "Move back", iconAsset:AssetImage('assets/images/down-arrow.png')),
-  left(scaleX: -0.8, scaleY: -0.8, tooltip: "Turn left", iconAsset:AssetImage('assets/images/curved-arrow.png')),
-  right(scaleX: 0.8, scaleY: -0.8, tooltip: "Turn right", iconAsset:AssetImage('assets/images/curved-arrow.png')),
-  none(scaleX: 0, scaleY: 0, tooltip: "This button should not exist", iconAsset:AssetImage('assets/images/eeror.png'));
+  up(
+    scaleX: 1,
+    scaleY: -1,
+    tooltip: "Move forward",
+    actionSignal: ActionSignal.goForward,
+    iconAsset:AssetImage('assets/images/down-arrow.png')
+  ),
+  down(
+    scaleX: 1,
+    scaleY: 1,
+    tooltip: "Move back",
+    actionSignal: ActionSignal.goBackward,
+    iconAsset:AssetImage('assets/images/down-arrow.png')),
+  left(
+    scaleX: -0.8,
+    scaleY: -0.8,
+    tooltip: "Turn left",
+    actionSignal: ActionSignal.turnLeft,
+    iconAsset:AssetImage('assets/images/curved-arrow.png')),
+  right(
+    scaleX: 0.8,
+    scaleY: -0.8,
+    tooltip: "Turn right",
+    actionSignal: ActionSignal.turnRight,
+    iconAsset:AssetImage('assets/images/curved-arrow.png')),
+  none(
+    scaleX: 0,
+    scaleY: 0,
+    tooltip: "This button should not exist",
+    actionSignal: ActionSignal.nonExistent,
+    iconAsset:AssetImage('assets/images/eeror.png'));
 
   const ButtonType({
     required this.scaleX,
     required this.scaleY,
     required this.tooltip,
     required this.iconAsset,
+    required this.actionSignal,
   });
 
   final double scaleX;
   final double scaleY;
   final String tooltip;
   final AssetImage iconAsset;
+  final ActionSignal actionSignal;
 }
 
 // TODO: clicking a button should send stop signal to the robot, 
-//to stop the movement it is currently in and then send next
-//signal to change type of movement to the desired one.
+// to stop the movement it is currently in and then send next
+// signal to change type of movement to the desired one.
 
 class SteeringButtons extends StatefulWidget {
   const SteeringButtons({super.key});
@@ -85,9 +119,11 @@ class _SteeringButtonsState extends State<SteeringButtons> {
   void handleButtonTap(ButtonType buttonType) {
     if (buttonType == activeButton) {
       setState(() {
+        log("Turning off button state");
         activeButton = ButtonType.none;
       });
     } else {
+      Provider.of<MyBluetoothState>(context, listen: false).sendMovementSignal(buttonType.actionSignal);
       setState(() {
         activeButton = buttonType;
       });
@@ -96,6 +132,10 @@ class _SteeringButtonsState extends State<SteeringButtons> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double directionIconSize = screenWidth / 4;
+    double turnsOffset = screenWidth / 5;
+
     return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -103,21 +143,24 @@ class _SteeringButtonsState extends State<SteeringButtons> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 RobotActionButton(
+                  iconSize: directionIconSize,
                   buttonType: ButtonType.left,
                   isActive: activeButton == ButtonType.left,
                   onPressCallback: handleButtonTap,),
-                const SizedBox(height: turnsOffset,),
+                SizedBox(height: turnsOffset,),
               ],
             ),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 RobotActionButton(
+                  iconSize: directionIconSize,
                   buttonType: ButtonType.up,
                   isActive: activeButton == ButtonType.up,
                   onPressCallback: handleButtonTap,),
-                const SizedBox(height: directionIconSize,),
+                SizedBox(height: directionIconSize,),
                 RobotActionButton(
+                  iconSize: directionIconSize,
                   buttonType: ButtonType.down,
                   isActive: activeButton == ButtonType.down,
                   onPressCallback: handleButtonTap,),
@@ -127,10 +170,11 @@ class _SteeringButtonsState extends State<SteeringButtons> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 RobotActionButton(
+                  iconSize: directionIconSize,
                   buttonType: ButtonType.right,
                   isActive: activeButton == ButtonType.right,
                   onPressCallback: handleButtonTap,),
-                const SizedBox(height: turnsOffset,),
+                SizedBox(height: turnsOffset,),
               ],
             ),
           ],
