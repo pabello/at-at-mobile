@@ -37,9 +37,13 @@ class _RobotActionButtonState extends State<RobotActionButton> {
       ),
 
       isSelected: widget.isActive,
-      onPressed: () {
-        widget.onPressCallback(widget.buttonType);
-      },
+      onPressed: Provider.of<MyBluetoothState>(context).isConnected ? () {
+        if (widget.isActive) {
+          widget.onPressCallback(ButtonType.stop);
+        } else {
+          widget.onPressCallback(widget.buttonType);
+        }
+      } : null,
       icon: Transform.scale(
         scaleX: widget.buttonType.scaleX,
         scaleY: widget.buttonType.scaleY,
@@ -80,6 +84,12 @@ enum ButtonType {
     tooltip: "Turn right",
     actionSignal: ActionSignal.turnRight,
     iconAsset:AssetImage('assets/images/curved-arrow.png')),
+  stop(
+    scaleX: 0,
+    scaleY: 0,
+    tooltip: "Stop moving",
+    actionSignal: ActionSignal.stop,
+    iconAsset:AssetImage('')),
   none(
     scaleX: 0,
     scaleY: 0,

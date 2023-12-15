@@ -7,6 +7,7 @@ enum ActionSignal {
   goBackward,
   turnRight,
   turnLeft,
+  stop,
   nonExistent,
 }
 
@@ -17,5 +18,6 @@ const Map<ActionSignal, String> actionSignals = {
   ActionSignal.goBackward: "GO BACKWARD;",
   ActionSignal.turnLeft: "TURN LEFT;",
   ActionSignal.turnRight: "TURN RIGHT;",
+  ActionSignal.stop: "STOP;",
   ActionSignal.nonExistent: "SIGNAL DOES NOT EXIST;"
 };
